@@ -7,22 +7,19 @@ def get_live_data(symbol):
         df = ticker.history(period="1d", interval="15m")
         if df.empty: return "ERROR: No Data"
         
-        # Hitung RSI Sederhana
+        # Indikator Teknis untuk Swarm
         delta = df['Close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
+        rsi = 100 - (100 / (1 + (gain / loss)))
         
         last_price = df['Close'].iloc[-1]
-        volatility = df['Close'].std()
-        
         return {
             "symbol": symbol,
-            "price": round(last_price, 2),
+            "price": round(last_price, 4),
             "rsi": round(rsi.iloc[-1], 2),
-            "volatility": round(volatility, 4),
-            "trend": "BULLISH" if last_price > df['Close'].mean() else "BEARISH"
+            "trend": "BULLISH" if last_price > df['Close'].mean() else "BEARISH",
+            "volatility": round(df['Close'].std(), 4)
         }
     except Exception as e:
-        return f"ERROR: {e}"
+        return f"ERROR: Sensor Blind: {e}"
