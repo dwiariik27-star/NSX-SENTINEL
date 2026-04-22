@@ -6,7 +6,7 @@ from execution_bridge import execute_trade
 
 def start_autonomous_trading():
     print("\n" + "="*60)
-    print("   NS-X OMNIPOTENT: THE PREDATOR IS HUNTING")
+    print("   NS-X SOVEREIGN: AGGRESSIVE EXTRACTION MODE")
     print("="*60)
     
     sentinel = ZexSentinel()
@@ -16,18 +16,28 @@ def start_autonomous_trading():
         if not isinstance(market_data, str):
             print(f"\n[+] Market Data: {market_data}")
             analysis = sentinel.get_analysis(str(market_data))
+            
             print(f"\n--- COUNCIL DECISION ---\n{analysis}\n" + "-"*30)
             
-            # Ekstrak Signal & Probability menggunakan Regex
-            try:
-                signal = re.search(r"SIGNAL: (\w+)", analysis).group(1)
-                prob = int(re.search(r"PROBABILITY: (\d+)", analysis).group(1))
+            # LOGIKA EKSTRAKSI AGRESIF (Mencari keyword tanpa peduli simbol)
+            # Mencari BUY/SELL/HOLD yang didahului oleh kata SIGNAL
+            signal_search = re.search(r"SIGNAL[\W_]*(BUY|SELL|HOLD)", analysis, re.IGNORECASE)
+            # Mencari angka yang didahului oleh kata PROBABILITY
+            prob_search = re.search(r"PROBABILITY[\W_]*(\d+)", analysis, re.IGNORECASE)
+            
+            if signal_search and prob_search:
+                signal = signal_search.group(1).upper()
+                prob = int(prob_search.group(1))
                 
-                # JALANKAN EKSEKUSI JIKA ANALISIS KELUAR
-                execute_trade(signal, market_data['price'], prob)
-            except:
-                print("[!] Analysis format mismatch. Skipping execution.")
+                print(f"[PROCESS] Success! Captured: {signal} ({prob}%)")
+                
+                # Kirim ke Jembatan Eksekusi
+                execute_trade(signal, market_data['mtf']['M15']['price'], prob)
+            else:
+                print("[!] EXTRACTION FAILED: AI Brain used an unrecognized format.")
+                print("[DEBUG] Raw output snippet:", analysis[:100] + "...")
         
+        print("\n[IDLE] Scanning market in 60s...")
         time.sleep(60)
 
 if __name__ == "__main__":
