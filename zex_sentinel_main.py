@@ -1,44 +1,32 @@
 import time
-import re
-from market_sensor import get_live_data
-from sentinel_core import ZexSentinel
-from execution_bridge import execute_trade
+from market_sensor import MarketSensor
+from sentinel_core import analyze_market
 
-def start_autonomous_trading():
-    print("\n" + "="*60)
-    print("   NS-X SOVEREIGN: AGGRESSIVE EXTRACTION MODE")
-    print("="*60)
-    
-    sentinel = ZexSentinel()
-    
+def execute_sentinel_loop():
+    sensor = MarketSensor()
+    print("--- NS-X SENTINEL: SYSTEM ONLINE (24/7 MODE) ---")
+
     while True:
-        market_data = get_live_data("GC=F")
-        if not isinstance(market_data, str):
-            print(f"\n[+] Market Data: {market_data}")
-            analysis = sentinel.get_analysis(str(market_data))
+        for asset in ["GOLD", "EURUSD"]:
+            print(f"[+] Menganalisis {asset}...")
             
-            print(f"\n--- COUNCIL DECISION ---\n{analysis}\n" + "-"*30)
+            # 1. Ambil Data Real-time
+            market_data = sensor.fetch_live_data(asset)
             
-            # LOGIKA EKSTRAKSI AGRESIF (Mencari keyword tanpa peduli simbol)
-            # Mencari BUY/SELL/HOLD yang didahului oleh kata SIGNAL
-            signal_search = re.search(r"SIGNAL[\W_]*(BUY|SELL|HOLD)", analysis, re.IGNORECASE)
-            # Mencari angka yang didahului oleh kata PROBABILITY
-            prob_search = re.search(r"PROBABILITY[\W_]*(\d+)", analysis, re.IGNORECASE)
-            
-            if signal_search and prob_search:
-                signal = signal_search.group(1).upper()
-                prob = int(prob_search.group(1))
+            if market_data:
+                # 2. Kirim ke AI untuk Keputusan Institusi
+                decision = analyze_market(asset, market_data)
                 
-                print(f"[PROCESS] Success! Captured: {signal} ({prob}%)")
-                
-                # Kirim ke Jembatan Eksekusi
-                execute_trade(signal, market_data['mtf']['M15']['price'], prob)
-            else:
-                print("[!] EXTRACTION FAILED: AI Brain used an unrecognized format.")
-                print("[DEBUG] Raw output snippet:", analysis[:100] + "...")
-        
-        print("\n[IDLE] Scanning market in 60s...")
-        time.sleep(60)
+                print(f"--- KEPUTUSAN UNTUK {asset} ---")
+                print(decision)
+                print("-" * 30)
+            
+            # Jeda antar aset untuk menghindari deteksi pola
+            time.sleep(10)
+            
+        # Siklus ulang setiap 5 menit (Sesuai interval chart)
+        print("[!] Siklus Selesai. Menunggu candle berikutnya...")
+        time.sleep(300)
 
 if __name__ == "__main__":
-    start_autonomous_trading()
+    execute_sentinel_loop()
