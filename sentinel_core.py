@@ -1,40 +1,45 @@
 import os
-import random
 from supabase import create_client
 from groq import Groq
 
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_KEY')
-supabase = create_client(url, key)
+supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
 class ZexSentinel:
     def __init__(self):
-        self.keys = self._get_keys_from_sinapsis()
-        self.selected_key = self.keys[0] if self.keys else None
-
-    def _get_keys_from_sinapsis(self):
         res = supabase.table('zex_keys').select('api_key').eq('status', 'READY').execute()
-        return [item['api_key'] for item in res.data]
+        self.keys = [item['api_key'] for item in res.data]
+        self.client = Groq(api_key=self.keys[0]) if self.keys else None
 
     def get_analysis(self, market_data):
-        if not self.selected_key: return "ERROR: No Fuel"
-        client = Groq(api_key=self.selected_key)
-        
-        # PROMPT NS-X 2.5: THE AGGRESSIVE JUDGE
+        if not self.client: return "ERROR: No Fuel"
+
+        # DEWAN 10 AGEN NS-X
         prompt = f"""
-        STRICT ANALYSIS REQUIRED. Market Data: {market_data}
+        [MARKET DATA]: {market_data}
         
-        As a Master Prop Firm Trader, evaluate the probability of a winning trade.
-        BE CRITICAL. If data is insufficient, probability MUST be below 50%.
-        To reach >80%, you must have alignment between Trend, RSI, and SMC Order Blocks.
-        
-        Format: [SIGNAL: BUY/SELL/HOLD] | [PROBABILITY: %] | [STRICT_REASON]
+        You are the Head of NS-X SWARM COUNCIL. Consult with these 10 specialists:
+        1. SMC Master: Identify Order Blocks & Inducements.
+        2. ICT Specialist: Find Silver Bullet setups & FVG.
+        3. Gann Analyst: Calculate geometric price cycles.
+        4. Elliot Wave Expert: Determine current wave (1-5/ABC).
+        5. Macro Scout: Analyze interest rate & inflation impact.
+        6. Liquidity Hunter: Locate stop-loss clusters (Buy/Sell Side).
+        7. Quant Engine: Calculate standard deviation & Mean Reversion.
+        8. Sentiment Bot: Scrape retail positioning (Contrarian).
+        9. Trend Follower: Check H4/D1 EMA alignment.
+        10. Risk Manager: Validate R:R (must be min 1:3).
+
+        INSTRUCTION: Each agent must vote. 
+        Final Probability = (Positive Votes / 10) * 100.
+        Output MUST be in this exact format:
+        [SIGNAL: BUY/SELL/HOLD] | [PROBABILITY: %] | [COUNCIL_REASON: brief summary of each agent's view]
         """
+        
         try:
-            completion = client.chat.completions.create(
+            chat = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[{"role": "system", "content": "You are a cold, mathematical trading engine. No fluff."},
+                messages=[{"role": "system", "content": "Strict Mathematical Swarm Council Mode."},
                           {"role": "user", "content": prompt}]
             )
-            return completion.choices[0].message.content
-        except: return "ERROR: Neural Link Failed"
+            return chat.choices[0].message.content
+        except: return "Neural Link Interrupted"
