@@ -11,10 +11,10 @@ supabase = create_client(url, key)
 class ZexSentinel:
     def __init__(self):
         self.keys = self._get_keys_from_sinapsis()
-        self.selected_key = random.choice(self.keys) if self.keys else None
+        # Menggunakan kunci pertama yang tersedia
+        self.selected_key = self.keys[0] if self.keys else None
 
     def _get_keys_from_sinapsis(self):
-        # Mengambil kunci yang statusnya READY dari Supabase
         response = supabase.table('zex_keys').select('api_key').eq('status', 'READY').execute()
         return [item['api_key'] for item in response.data]
 
@@ -24,7 +24,7 @@ class ZexSentinel:
         
         client = Groq(api_key=self.selected_key)
         
-        # PROTOKOL ZEX-SWARM: Multi-Agent Analysis Prompt
+        # PROTOKOL ZEX-SWARM: Model Updated to Llama-3.3-70b
         prompt = f"""
         Act as ZEX-SWARM Intelligence. Analyze this market data: {market_context}
         1. Macro Scout: Analyze news impact.
@@ -36,7 +36,7 @@ class ZexSentinel:
         
         try:
             completion = client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}]
             )
             return completion.choices[0].message.content
@@ -44,7 +44,6 @@ class ZexSentinel:
             return f"ERROR: {str(e)}"
 
 if __name__ == "__main__":
-    # Simulasi pengambilan data pasar (Nantinya akan otomatis dari Stage 3)
     sample_context = "XAUUSD at 2350.50, Bullish Order Block at 2340, FED News: Neutral"
     sentinel = ZexSentinel()
     print("--- NS-X SENTINEL ANALYSIS START ---")
