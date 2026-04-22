@@ -1,42 +1,101 @@
+
 import os
+
+from dotenv import load_dotenv
+
 from supabase import create_client
+
 from groq import Groq
 
+
+
+load_dotenv() # Mengambil kredensial dari file .env secara otomatis
+
+
+
 class ZexSentinel:
+
     def __init__(self):
-        self.supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
+
+        url = os.getenv('SUPABASE_URL')
+
+        key = os.getenv('SUPABASE_KEY')
+
+        if not url or not key:
+
+            raise ValueError("CRITICAL: Kredensial .env tidak ditemukan!")
+
+        self.supabase = create_client(url, key)
+
         self.client = self._load_client()
 
+
+
     def _load_client(self):
-        # Ambil kunci paling segar dari Sinapsis
+
         res = self.supabase.table('zex_keys').select('api_key').eq('status', 'READY').order('created_at', desc=True).limit(1).execute()
+
         if res.data:
+
             return Groq(api_key=res.data[0]['api_key'])
+
         return None
 
+
+
     def get_analysis(self, market_data):
-        if not self.client: return "ERROR: Fuel Empty. Harvester needs to run."
+
+        if not self.client: return "ERROR: Fuel Empty. Harvester needs to run at Cloud."
+
         
-        # SWARM ARCHITECTURE: 10 Specialist Agents
+
+        # PROMPT DEWAN 10 AGEN: POWERFULL MODE
+
         prompt = f"""
-        DATA: {market_data}
-        You are the HEAD OF THE NS-X COUNCIL. Coordinate 10 Elite Agents for a Prop Firm Trade:
-        1. SMC Guru, 2. ICT Expert, 3. Elliot Wave Master, 4. Fibonacci Quant, 
-        5. RSI/MACD Sniper, 6. Volume Profile Analyst, 7. Macro Scout, 
-        8. Trend Alignment Bot, 9. Liquidity Hunter, 10. Risk Manager.
 
-        MANDATE: 
-        - If agents are split, Probability < 70%.
-        - If 8/10 agree on setup, Probability > 85%.
-        - Identify "Stop Hunt" zones specifically.
+        DATA PASAR: {market_data}
 
-        Format: [SIGNAL: BUY/SELL/HOLD] | [PROBABILITY: %] | [COUNCIL_REASON]
+        Lakukan Sidang Pleno Dewan 10 Agen NS-X:
+
+        1. SMC (Order Blocks), 2. ICT (FVG/Liquidity), 3. Elliot Wave (Cycles), 
+
+        4. Fibonacci (Levels), 5. RSI/MACD (Momentum), 6. Volume Profile (POC), 
+
+        7. Macro (News Impact), 8. Trend Align (Multi-TF), 9. Liquidity Hunter (Stop Hunt), 
+
+        10. Risk Manager (1:3 RR Requirement).
+
+
+
+        ATURAN KETAT: 
+
+        - Jika hanya 5 agen setuju, Probability = 50%.
+
+        - Jika 9-10 agen setuju secara matematis, Probability > 85%.
+
+        - Jika ada divergensi RSI vs Price, kurangi Probability secara drastis.
+
+
+
+        Format Output: [SIGNAL: BUY/SELL/HOLD] | [PROBABILITY: %] | [VONIS_DEWAN: penjelasan singkat tiap agen]
+
         """
+
         try:
+
             chat = self.client.chat.completions.create(
+
                 model="llama-3.3-70b-versatile",
-                temperature=0.1, # Mode Presisi Tinggi
-                messages=[{"role": "system", "content": "You are the NS-X Sovereign Engine."}, {"role": "user", "content": prompt}]
+
+                temperature=0.1,
+
+                messages=[{"role": "system", "content": "You are the NS-X Supreme Consensus Engine."}, 
+
+                          {"role": "user", "content": prompt}]
+
             )
+
             return chat.choices[0].message.content
-        except: return "Neural Link Interrupted"
+
+        except: return "Neural Link Interrupted."
+
